@@ -6,8 +6,8 @@
 
 void handleArgs(int argc, char *argv[], char **pattern, char **filename) {
     if (argc < 3) {
-        printf("Usage: grepr <pattern> <filename>");
-        exit(1);
+        fprintf(stderr, "Usage: grepr <pattern> <filename>\n");
+        exit(EXIT_FAILURE);
     }
 
     *pattern = argv[1];
