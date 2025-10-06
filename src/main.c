@@ -48,17 +48,19 @@ int main(int argc, char *argv[]) {
     char lineBuffer[LINE_BUFFER];
     int lineIndex = 1;
     while (fgets(lineBuffer, LINE_BUFFER, file)) {
-        if (showLineIndex) 
-            printf("%d: ", lineIndex);
-            
-        char *start = lineBuffer;
-        char *match;
-        while (match = strstr(start, pattern)) {
-            fwrite(start, 1, match - start, stdout);
-            printf("%s%s%s", RED, pattern, WHITE);
-            start = match + strlen(pattern);
+        if (strstr(lineBuffer, pattern)) {
+            if (showLineIndex) 
+                printf("%d: ", lineIndex);
+
+            char *start = lineBuffer;
+            char *match;
+            while (match = strstr(start, pattern)) {
+                fwrite(start, 1, match - start, stdout);
+                printf("%s%s%s", RED, pattern, WHITE);
+                start = match + strlen(pattern);
+            }
+            fputs(start, stdout);
         }
-        fputs(start, stdout);
         lineIndex++;
     }
 
