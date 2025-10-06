@@ -6,10 +6,12 @@
 
 #define LINE_BUFFER 512
 
+#define RED "\033[31m"
+#define WHITE "\033[0m"
+
 char *pattern;
 char *filename;
 bool showLineIndex = false;
-
 
 void handleArgs(int argc, char *argv[]) {
     int opt;
@@ -46,11 +48,17 @@ int main(int argc, char *argv[]) {
     char lineBuffer[LINE_BUFFER];
     int lineIndex = 1;
     while (fgets(lineBuffer, LINE_BUFFER, file)) {
-        if (strstr(lineBuffer, pattern)) {
-            if (showLineIndex) 
-                printf("%d: ", lineIndex);
-            printf("%s", lineBuffer);
+        if (showLineIndex) 
+            printf("%d: ", lineIndex);
+            
+        char *start = lineBuffer;
+        char *match;
+        while (match = strstr(start, pattern)) {
+            fwrite(start, 1, match - start, stdout);
+            printf("%s%s%s", RED, pattern, WHITE);
+            start = match + strlen(pattern);
         }
+        fputs(start, stdout);
         lineIndex++;
     }
 
