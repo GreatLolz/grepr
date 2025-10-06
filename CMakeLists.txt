@@ -8,4 +8,5 @@ include_directories(include)
 
 add_executable(grepr
     src/main.c
+    src/getopt.c
 )
