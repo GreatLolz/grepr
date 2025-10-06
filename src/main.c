@@ -4,20 +4,21 @@
 
 #define LINE_BUFFER 512
 
-void handleArgs(int argc, char *argv[], char **pattern, char **filename) {
+char *pattern;
+char *filename;
+
+void handleArgs(int argc, char *argv[]) {
     if (argc < 3) {
         fprintf(stderr, "Usage: grepr <pattern> <filename>\n");
         exit(EXIT_FAILURE);
     }
 
-    *pattern = argv[1];
-    *filename = argv[2];
+    pattern = argv[1];
+    filename = argv[2];
 }
 
 int main(int argc, char *argv[]) {
-    char *pattern;
-    char *filename;
-    handleArgs(argc, argv, &pattern, &filename);
+    handleArgs(argc, argv);
 
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
