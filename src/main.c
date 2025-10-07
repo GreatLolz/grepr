@@ -11,6 +11,7 @@
 #define WHITE "\033[0m"
 #define BLUE "\033[34m"
 
+// globals
 char *pattern;
 int fileCount = 0;
 char **filenames = NULL;
@@ -20,6 +21,7 @@ bool showLineIndex = false;
 bool hideFileHeaders = false;
 bool inverted = false;
 
+// functions
 void handleArgs(int argc, char *argv[]);
 void printMatch(char *lineBuffer, re_t compiledPattern);
 void processLine(char *filename, char *line, int lineInde, re_t compiledPattern);
@@ -38,11 +40,33 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+void printHelp() {
+    printf(
+        "Usage: grepr [OPTIONS] <pattern> <filename>...\n"
+        "OPTIONS:\n"
+        "   -n          Show line numbers\n"
+        "   -h          Hide file headers when matching multiple files\n"
+        "   -v          Inverted mode (prints lines without matches)\n"
+        "   --help      Prints this help message\n"
+    );
+    exit(EXIT_SUCCESS);
+}
+
 void handleArgs(int argc, char *argv[]) {
     int opt;
 
-    while ((opt = getopt(argc, argv, "nhv")) != -1) {
+    static struct option longOptions[] = {
+        {"help", no_argument, 0, 0},
+        {0, 0, 0, 0}
+    };
+
+    int longIndex = 0;
+    while ((opt = getopt_long(argc, argv, "nhv", longOptions, &longIndex)) != -1) {
         switch (opt) {
+            case 0:
+                if (longIndex == 0) {
+                    printHelp();
+                }
             case 'n':
                 showLineIndex = true;
                 break;
@@ -53,13 +77,13 @@ void handleArgs(int argc, char *argv[]) {
                 inverted = true;
                 break;
             default:
-                fprintf(stderr, "Usage: grepr [OPTIONS] <pattern> <filename>\n", argv[0]);
+                fprintf(stderr, "Usage: grepr [OPTIONS] <pattern> <filename>...\n", argv[0]);
                 exit(EXIT_FAILURE);
         }
     }
 
     if (argc - optind < 2) {
-        fprintf(stderr, "Usage: grepr [OPTIONS] <pattern> <filename>\n");
+        fprintf(stderr, "Usage: grepr [OPTIONS] <pattern> <filename>...\n");
         exit(EXIT_FAILURE);
     }
 
