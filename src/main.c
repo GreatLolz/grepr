@@ -18,6 +18,24 @@ bool showLineIndex = false;
 bool hideFileHeaders = false;
 bool inverted = false;
 
+void handleArgs(int argc, char *argv[]);
+void printMatch(char *line);
+void processLine(char *filename, char *line, int lineIndex);
+void processFile(char *filename);
+
+int main(int argc, char *argv[]) {
+    handleArgs(argc, argv);
+
+    for (int i = 0; i < fileCount; i++) {
+        processFile(filenames[i]);
+    }
+    
+    if (filenames != NULL) {
+        free(filenames);
+    }
+    return 0;
+}
+
 void handleArgs(int argc, char *argv[]) {
     int opt;
 
@@ -59,55 +77,54 @@ void handleArgs(int argc, char *argv[]) {
     }
 }
 
-int main(int argc, char *argv[]) {
-    handleArgs(argc, argv);
-
-    for (int i = 0; i < fileCount; i++) {
-        FILE *file = fopen(filenames[i], "r");
-        if (file == NULL) {
-            perror("grepr: Error opening file");
-            return 1;
-        }
-
-        char lineBuffer[LINE_BUFFER];
-        int lineIndex = 1;
-        while (fgets(lineBuffer, LINE_BUFFER, file)) {
-            bool hasMatch = strstr(lineBuffer, pattern) != NULL;
-
-            if (hasMatch && !inverted || !hasMatch && inverted) {
-                // print file headers
-                if (fileCount > 1 && !hideFileHeaders) 
-                    printf("%s:", filenames[i]);
-                // show line numbers
-                if (showLineIndex) 
-                    printf("%d:", lineIndex);
-
-                if (hasMatch && !inverted) {
-                    char *start = lineBuffer;
-                    char *match;
-                    // iterate through all matches in line
-                    while (match = strstr(start, pattern)) {
-                        fwrite(start, 1, match - start, stdout);
-                        printf("%s%s%s", RED, pattern, WHITE);
-                        start = match + strlen(pattern);
-                    }
-                    fputs(start, stdout);
-                } else {
-                    printf("%s", lineBuffer);
-                } 
-
-                // add newline if missing
-                if (lineBuffer[strlen(lineBuffer) - 1] != '\n')
-                    printf("\n");
-            }
-            lineIndex++;
-        }
-
-        fclose(file);
+void printMatch(char *lineBuffer) {
+    char *start = lineBuffer;
+    char *match;
+    // iterate through all matches in line
+    while (match = strstr(start, pattern)) {
+        fwrite(start, 1, match - start, stdout);
+        printf("%s%s%s", RED, pattern, WHITE);
+        start = match + strlen(pattern);
     }
-    
-    if (filenames != NULL) {
-        free(filenames);
+    fputs(start, stdout);
+}
+
+void processLine(char *lineBuffer, char *filename, int lineIndex) {
+    bool hasMatch = strstr(lineBuffer, pattern) != NULL;
+
+    if (hasMatch && !inverted || !hasMatch && inverted) {
+        // print file headers
+        if (fileCount > 1 && !hideFileHeaders) 
+            printf("%s:", filename);
+        // show line numbers
+        if (showLineIndex) 
+            printf("%d:", lineIndex);
+
+        if (hasMatch && !inverted) {
+            printMatch(lineBuffer);
+        } else {
+            printf("%s", lineBuffer);
+        } 
+
+        // add newline if missing
+        if (lineBuffer[strlen(lineBuffer) - 1] != '\n')
+            printf("\n");
     }
-    return 0;
+}
+
+void processFile(char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("grepr: Error opening file");
+        exit(EXIT_FAILURE);
+    }
+
+    char lineBuffer[LINE_BUFFER];
+    int lineIndex = 1;
+    while (fgets(lineBuffer, LINE_BUFFER, file)) {
+        processLine(lineBuffer, filename, lineIndex);
+        lineIndex++;
+    }
+
+    fclose(file);
 }
