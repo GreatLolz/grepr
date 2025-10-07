@@ -3,6 +3,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <stdbool.h>
+#include <re.h>
 
 #define LINE_BUFFER 512
 
@@ -20,8 +21,8 @@ bool hideFileHeaders = false;
 bool inverted = false;
 
 void handleArgs(int argc, char *argv[]);
-void printMatch(char *line);
-void processLine(char *filename, char *line, int lineIndex);
+void printMatch(char *lineBuffer, re_t compiledPattern);
+void processLine(char *filename, char *line, int lineInde, re_t compiledPattern);
 void processFile(char *filename);
 
 int main(int argc, char *argv[]) {
@@ -92,6 +93,9 @@ void processFile(char *filename) {
         perror("malloc");
         exit(EXIT_FAILURE);
     }
+
+    // pre-compile regex
+    re_t compiledPattern = re_compile(pattern);
     
     int lineIndex = 1;
     while (fgets(lineBuffer, LINE_BUFFER, file)) {
@@ -109,7 +113,7 @@ void processFile(char *filename) {
             length = strlen(lineBuffer);
         }
 
-        processLine(filename, lineBuffer, lineIndex);
+        processLine(filename, lineBuffer, lineIndex, compiledPattern);
         lineIndex++;
     }
 
@@ -117,8 +121,9 @@ void processFile(char *filename) {
     fclose(file);
 }
 
-void processLine(char *filename, char *lineBuffer, int lineIndex) {
-    bool hasMatch = strstr(lineBuffer, pattern) != NULL;
+void processLine(char *filename, char *lineBuffer, int lineIndex, re_t compiledPattern) {
+    int matchLength;
+    bool hasMatch = re_matchp(compiledPattern, lineBuffer, &matchLength) != -1;
 
     if (hasMatch && !inverted || !hasMatch && inverted) {
         // print file headers
@@ -129,7 +134,7 @@ void processLine(char *filename, char *lineBuffer, int lineIndex) {
             printf("%d:", lineIndex);
 
         if (hasMatch && !inverted) {
-            printMatch(lineBuffer);
+            printMatch(lineBuffer, compiledPattern);
         } else {
             printf("%s", lineBuffer);
         } 
@@ -140,14 +145,20 @@ void processLine(char *filename, char *lineBuffer, int lineIndex) {
     }
 }
 
-void printMatch(char *lineBuffer) {
-    char *start = lineBuffer;
-    char *match;
-    // iterate through all matches in line
-    while (match = strstr(start, pattern)) {
-        fwrite(start, 1, match - start, stdout);
-        printf("%s%s%s", RED, pattern, WHITE);
-        start = match + strlen(pattern);
+void printMatch(char *lineBuffer, re_t compiledPattern) {
+    int offset = 0;
+    int matchLength;
+    int matchIndex;
+
+    while ((matchIndex = re_matchp(compiledPattern, lineBuffer + offset, &matchLength)) >= 0) {
+        fwrite(lineBuffer + offset, 1, matchIndex, stdout);
+
+        printf("%s", RED);
+        fwrite(lineBuffer + offset + matchIndex, 1, matchLength, stdout);
+        printf("%s", WHITE);
+
+        offset += matchIndex + matchLength;
     }
-    fputs(start, stdout);
+
+    printf("%s", lineBuffer + offset);
 }
