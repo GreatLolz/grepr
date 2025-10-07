@@ -12,15 +12,21 @@
 char *pattern;
 int fileCount = 0;
 char **filenames = NULL;
+
+// flags
 bool showLineIndex = false;
+bool hideFileHeaders = false;
 
 void handleArgs(int argc, char *argv[]) {
     int opt;
 
-    while ((opt = getopt(argc, argv, "n")) != -1) {
+    while ((opt = getopt(argc, argv, "nh")) != -1) {
         switch (opt) {
             case 'n':
                 showLineIndex = true;
+                break;
+            case 'h':
+                hideFileHeaders = true;
                 break;
             default:
                 fprintf(stderr, "Usage: grepr [OPTIONS] <pattern> <filename>\n", argv[0]);
@@ -63,7 +69,7 @@ int main(int argc, char *argv[]) {
         int lineIndex = 1;
         while (fgets(lineBuffer, LINE_BUFFER, file)) {
             if (strstr(lineBuffer, pattern)) {
-                if (fileCount > 1) 
+                if (fileCount > 1 && !hideFileHeaders) 
                     printf("%s:", filenames[i]);
                 if (showLineIndex) 
                     printf("%d:", lineIndex);
