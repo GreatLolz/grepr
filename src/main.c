@@ -77,19 +77,46 @@ void handleArgs(int argc, char *argv[]) {
     }
 }
 
-void printMatch(char *lineBuffer) {
-    char *start = lineBuffer;
-    char *match;
-    // iterate through all matches in line
-    while (match = strstr(start, pattern)) {
-        fwrite(start, 1, match - start, stdout);
-        printf("%s%s%s", RED, pattern, WHITE);
-        start = match + strlen(pattern);
+void processFile(char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("grepr: Error opening file");
+        exit(EXIT_FAILURE);
     }
-    fputs(start, stdout);
+
+    size_t lineBufferSize = LINE_BUFFER;
+
+    char *lineBuffer = malloc(lineBufferSize);
+    if (lineBuffer == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    
+    int lineIndex = 1;
+    while (fgets(lineBuffer, LINE_BUFFER, file)) {
+        // check if buffer is full
+        size_t length = strlen(lineBuffer);
+        while (length == LINE_BUFFER - 1) {
+            lineBufferSize *= 2;
+            char *tmp = realloc(lineBuffer, lineBufferSize);
+            if (tmp == NULL) {
+                perror("malloc");
+                exit(EXIT_FAILURE);
+            }
+            lineBuffer = tmp;
+            fgets(lineBuffer + length, lineBufferSize - length, file);
+            length = strlen(lineBuffer);
+        }
+
+        processLine(filename, lineBuffer, lineIndex);
+        lineIndex++;
+    }
+
+    free(lineBuffer);
+    fclose(file);
 }
 
-void processLine(char *lineBuffer, char *filename, int lineIndex) {
+void processLine(char *filename, char *lineBuffer, int lineIndex) {
     bool hasMatch = strstr(lineBuffer, pattern) != NULL;
 
     if (hasMatch && !inverted || !hasMatch && inverted) {
@@ -112,19 +139,14 @@ void processLine(char *lineBuffer, char *filename, int lineIndex) {
     }
 }
 
-void processFile(char *filename) {
-    FILE *file = fopen(filename, "r");
-    if (file == NULL) {
-        perror("grepr: Error opening file");
-        exit(EXIT_FAILURE);
+void printMatch(char *lineBuffer) {
+    char *start = lineBuffer;
+    char *match;
+    // iterate through all matches in line
+    while (match = strstr(start, pattern)) {
+        fwrite(start, 1, match - start, stdout);
+        printf("%s%s%s", RED, pattern, WHITE);
+        start = match + strlen(pattern);
     }
-
-    char lineBuffer[LINE_BUFFER];
-    int lineIndex = 1;
-    while (fgets(lineBuffer, LINE_BUFFER, file)) {
-        processLine(lineBuffer, filename, lineIndex);
-        lineIndex++;
-    }
-
-    fclose(file);
+    fputs(start, stdout);
 }
