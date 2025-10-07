@@ -72,21 +72,9 @@ int main(int argc, char *argv[]) {
         char lineBuffer[LINE_BUFFER];
         int lineIndex = 1;
         while (fgets(lineBuffer, LINE_BUFFER, file)) {
-            if (!strstr(lineBuffer, pattern) && inverted) {
-                // print file headers
-                if (fileCount > 1 && !hideFileHeaders) 
-                    printf("%s:", filenames[i]);
-                // show line numbers
-                if (showLineIndex) 
-                    printf("%d:", lineIndex);
-                printf("%s", lineBuffer);
+            bool hasMatch = strstr(lineBuffer, pattern) != NULL;
 
-                // add newline if missing
-                if (lineBuffer[strlen(lineBuffer) - 1] != '\n')
-                    printf("\n");
-            }
-
-            if (strstr(lineBuffer, pattern) && !inverted) {
+            if (hasMatch && !inverted || !hasMatch && inverted) {
                 // print file headers
                 if (fileCount > 1 && !hideFileHeaders) 
                     printf("%s:", filenames[i]);
@@ -94,15 +82,19 @@ int main(int argc, char *argv[]) {
                 if (showLineIndex) 
                     printf("%d:", lineIndex);
 
-                char *start = lineBuffer;
-                char *match;
-                // iterate through all matches in line
-                while (match = strstr(start, pattern)) {
-                    fwrite(start, 1, match - start, stdout);
-                    printf("%s%s%s", RED, pattern, WHITE);
-                    start = match + strlen(pattern);
-                }
-                fputs(start, stdout);
+                if (hasMatch && !inverted) {
+                    char *start = lineBuffer;
+                    char *match;
+                    // iterate through all matches in line
+                    while (match = strstr(start, pattern)) {
+                        fwrite(start, 1, match - start, stdout);
+                        printf("%s%s%s", RED, pattern, WHITE);
+                        start = match + strlen(pattern);
+                    }
+                    fputs(start, stdout);
+                } else {
+                    printf("%s", lineBuffer);
+                } 
 
                 // add newline if missing
                 if (lineBuffer[strlen(lineBuffer) - 1] != '\n')
