@@ -10,7 +10,8 @@
 #define WHITE "\033[0m"
 
 char *pattern;
-char *filename;
+int fileCount = 0;
+char **filenames = NULL;
 bool showLineIndex = false;
 
 void handleArgs(int argc, char *argv[]) {
@@ -32,39 +33,57 @@ void handleArgs(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    // first non-option arg
     pattern = argv[optind];
-    filename = argv[optind + 1];
+
+    fileCount = argc - optind - 1;
+    filenames = malloc(fileCount * sizeof(char *));
+
+    // remaining non-option args
+    for (int i = 0; i < fileCount; i++) {
+        filenames[i] = argv[optind + i + 1];
+    }
 }
 
 int main(int argc, char *argv[]) {
     handleArgs(argc, argv);
 
-    FILE *file = fopen(filename, "r");
-    if (file == NULL) {
-        perror("grepr: Error opening file");
-        return 1;
-    }
-
-    char lineBuffer[LINE_BUFFER];
-    int lineIndex = 1;
-    while (fgets(lineBuffer, LINE_BUFFER, file)) {
-        if (strstr(lineBuffer, pattern)) {
-            if (showLineIndex) 
-                printf("%d: ", lineIndex);
-
-            char *start = lineBuffer;
-            char *match;
-            while (match = strstr(start, pattern)) {
-                fwrite(start, 1, match - start, stdout);
-                printf("%s%s%s", RED, pattern, WHITE);
-                start = match + strlen(pattern);
-            }
-            fputs(start, stdout);
+    for (int i = 0; i < fileCount; i++) {
+        FILE *file = fopen(filenames[i], "r");
+        if (file == NULL) {
+            perror("grepr: Error opening file");
+            return 1;
         }
-        lineIndex++;
+
+        char lineBuffer[LINE_BUFFER];
+        int lineIndex = 1;
+        while (fgets(lineBuffer, LINE_BUFFER, file)) {
+            if (strstr(lineBuffer, pattern)) {
+                if (fileCount > 1) 
+                    printf("%s:", filenames[i]);
+                if (showLineIndex) 
+                    printf("%d:", lineIndex);
+
+                char *start = lineBuffer;
+                char *match;
+                while (match = strstr(start, pattern)) {
+                    fwrite(start, 1, match - start, stdout);
+                    printf("%s%s%s", RED, pattern, WHITE);
+                    start = match + strlen(pattern);
+                }
+                fputs(start, stdout);
+
+                if (lineBuffer[strlen(lineBuffer) - 1] != '\n')
+                    printf("\n");
+            }
+            lineIndex++;
+        }
+
+        fclose(file);
     }
-
-    fclose(file);
-
+    
+    if (filenames != NULL) {
+        free(filenames);
+    }
     return 0;
 }
