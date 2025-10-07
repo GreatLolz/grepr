@@ -8,6 +8,7 @@
 
 #define RED "\033[31m"
 #define WHITE "\033[0m"
+#define BLUE "\033[34m"
 
 char *pattern;
 int fileCount = 0;
@@ -122,7 +123,7 @@ void processLine(char *filename, char *lineBuffer, int lineIndex) {
     if (hasMatch && !inverted || !hasMatch && inverted) {
         // print file headers
         if (fileCount > 1 && !hideFileHeaders) 
-            printf("%s:", filename);
+            printf("%s%s%s:", BLUE, filename, WHITE);
         // show line numbers
         if (showLineIndex) 
             printf("%d:", lineIndex);
