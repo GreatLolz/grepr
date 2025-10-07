@@ -38,6 +38,10 @@ void handleArgs(int argc, char *argv[]) {
 
     fileCount = argc - optind - 1;
     filenames = malloc(fileCount * sizeof(char *));
+    if (filenames == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
 
     // remaining non-option args
     for (int i = 0; i < fileCount; i++) {
