@@ -80,7 +80,7 @@ void handleArgs(int argc, char *argv[]) {
 void processFile(char *filename) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
-        perror("grepr: Error opening file");
+        fprintf(stderr, "grepr: Error opening file %s: %s\n", filename, strerror(errno));
         exit(EXIT_FAILURE);
     }
 
