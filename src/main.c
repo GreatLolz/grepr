@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
 void handleArgs(int argc, char *argv[]) {
     int opt;
 
-    while ((opt = getopt(argc, argv, "nhi")) != -1) {
+    while ((opt = getopt(argc, argv, "nhv")) != -1) {
         switch (opt) {
             case 'n':
                 showLineIndex = true;
@@ -47,7 +47,7 @@ void handleArgs(int argc, char *argv[]) {
             case 'h':
                 hideFileHeaders = true;
                 break;
-            case 'i':
+            case 'v':
                 inverted = true;
                 break;
             default:
