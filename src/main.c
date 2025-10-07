@@ -16,17 +16,21 @@ char **filenames = NULL;
 // flags
 bool showLineIndex = false;
 bool hideFileHeaders = false;
+bool inverted = false;
 
 void handleArgs(int argc, char *argv[]) {
     int opt;
 
-    while ((opt = getopt(argc, argv, "nh")) != -1) {
+    while ((opt = getopt(argc, argv, "nhi")) != -1) {
         switch (opt) {
             case 'n':
                 showLineIndex = true;
                 break;
             case 'h':
                 hideFileHeaders = true;
+                break;
+            case 'i':
+                inverted = true;
                 break;
             default:
                 fprintf(stderr, "Usage: grepr [OPTIONS] <pattern> <filename>\n", argv[0]);
@@ -68,14 +72,31 @@ int main(int argc, char *argv[]) {
         char lineBuffer[LINE_BUFFER];
         int lineIndex = 1;
         while (fgets(lineBuffer, LINE_BUFFER, file)) {
-            if (strstr(lineBuffer, pattern)) {
+            if (!strstr(lineBuffer, pattern) && inverted) {
+                // print file headers
                 if (fileCount > 1 && !hideFileHeaders) 
                     printf("%s:", filenames[i]);
+                // show line numbers
+                if (showLineIndex) 
+                    printf("%d:", lineIndex);
+                printf("%s", lineBuffer);
+
+                // add newline if missing
+                if (lineBuffer[strlen(lineBuffer) - 1] != '\n')
+                    printf("\n");
+            }
+
+            if (strstr(lineBuffer, pattern) && !inverted) {
+                // print file headers
+                if (fileCount > 1 && !hideFileHeaders) 
+                    printf("%s:", filenames[i]);
+                // show line numbers
                 if (showLineIndex) 
                     printf("%d:", lineIndex);
 
                 char *start = lineBuffer;
                 char *match;
+                // iterate through all matches in line
                 while (match = strstr(start, pattern)) {
                     fwrite(start, 1, match - start, stdout);
                     printf("%s%s%s", RED, pattern, WHITE);
@@ -83,6 +104,7 @@ int main(int argc, char *argv[]) {
                 }
                 fputs(start, stdout);
 
+                // add newline if missing
                 if (lineBuffer[strlen(lineBuffer) - 1] != '\n')
                     printf("\n");
             }
