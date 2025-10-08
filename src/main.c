@@ -178,7 +178,7 @@ void printResults(char *lineBuffer, int lineIndex, Match *matches, int matchCoun
     }
 
     bool hasMatch = matchCount > 0;
-    if (hasMatch != config->inverted) {
+    if (hasMatch && !config->inverted) {
         int offset = 0;
         for (int i = 0; i < matchCount; i++) {
             fwrite(lineBuffer + offset, 1, matches[i].matchIndex - offset, stdout);
