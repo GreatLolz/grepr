@@ -7,6 +7,7 @@
 #include <errno.h>
 
 #define LINE_BUFFER 512
+#define MATCH_BUFFER 10
 
 #define RED "\033[31m"
 #define WHITE "\033[0m"
@@ -22,11 +23,17 @@ typedef struct {
     bool inverted;
 } GreprConfig;
 
+typedef struct {
+    int matchIndex;
+    int matchLength;
+} Match;
+
 void handleArgs(int argc, char *argv[], GreprConfig *config);
 void printHelp(void);
 void processFile(char *filename, GreprConfig *config);
 void processLine(char *filename, char *lineBuffer, int lineIndex, GreprConfig *config);
-void printMatch(char *lineBuffer, re_t compiledPattern);
+int findMatches(char *lineBuffer, re_t compiledPattern, Match **matches);
+void printResults(char *lineBuffer, int lineIndex, Match *matches, int matchCount, char *filename, GreprConfig *config);
 
 int main(int argc, char *argv[]) {
     GreprConfig config = {
@@ -156,43 +163,76 @@ void processFile(char *filename, GreprConfig *config) {
 }
 
 void processLine(char *filename, char *lineBuffer, int lineIndex, GreprConfig *config) {
-    int matchLength;
-    bool hasMatch = re_matchp(config->compiledPattern, lineBuffer, &matchLength) != -1;
-
+    Match *matches = NULL;
+    int matchCount = findMatches(lineBuffer, config->compiledPattern, &matches);
+    
+    bool hasMatch = matchCount > 0;
     if (hasMatch != config->inverted) {
-        // print file headers
-        if (config->fileCount > 1 && !config->hideFileHeaders) 
-            printf("%s%s%s:", BLUE, filename, WHITE);
-        // show line numbers
-        if (config->showLineNumbers) 
-            printf("%d:", lineIndex);
-
-        if (hasMatch && !config->inverted) {
-            printMatch(lineBuffer, config->compiledPattern);
-        } else {
-            printf("%s", lineBuffer);
-        } 
-
-        // add newline if missing
-        if (lineBuffer[strlen(lineBuffer) - 1] != '\n')
-            printf("\n");
+        printResults(lineBuffer, lineIndex, matches, matchCount, filename, config);
     }
+
+    free(matches);
 }
 
-void printMatch(char *lineBuffer, re_t compiledPattern) {
+int findMatches(char *lineBuffer, re_t compiledPattern, Match **matches) {
+    int count = 0;
+    int capacity = MATCH_BUFFER;
+
+    *matches = malloc(capacity * sizeof(Match));
+    if (*matches == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
     int offset = 0;
     int matchLength;
     int matchIndex;
 
-    while ((matchIndex = re_matchp(compiledPattern, lineBuffer + offset, &matchLength)) >= 0) {
-        fwrite(lineBuffer + offset, 1, matchIndex, stdout);
+    while ((matchIndex = re_matchp(compiledPattern, lineBuffer + offset, &matchLength)) != -1) {
+        if (count >= capacity) {
+            capacity *= 2;
+            Match *tmp = realloc(*matches, capacity * sizeof(Match));
+            if (tmp == NULL) {
+                perror("realloc");
+                exit(EXIT_FAILURE);
+            }
+            *matches = tmp;
+        }
 
-        printf("%s", RED);
-        fwrite(lineBuffer + offset + matchIndex, 1, matchLength, stdout);
-        printf("%s", WHITE);
-
+        (*matches)[count].matchIndex = offset + matchIndex;
+        (*matches)[count].matchLength = matchLength;
+        count++;
         offset += matchIndex + matchLength;
     }
 
-    printf("%s", lineBuffer + offset);
+    return count;
+}
+
+void printResults(char *lineBuffer, int lineIndex, Match *matches, int matchCount, char *filename, GreprConfig *config) {
+    if (config->fileCount > 1 && !config->hideFileHeaders) {
+        printf("%s%s%s:", BLUE, filename, WHITE);
+    }
+
+    if (config->showLineNumbers) {
+        printf("%d:", lineIndex);
+    }
+
+    bool hasMatch = matchCount > 0;
+    if (hasMatch != config->inverted) {
+        int offset = 0;
+        for (int i = 0; i < matchCount; i++) {
+            fwrite(lineBuffer + offset, 1, matches[i].matchIndex - offset, stdout);
+            printf("%s", RED);
+            fwrite(lineBuffer + matches[i].matchIndex, 1, matches[i].matchLength, stdout);
+            printf("%s", WHITE);
+            offset = matches[i].matchIndex + matches[i].matchLength;
+        }
+        printf("%s", lineBuffer + offset);
+    } else {
+        printf("%s", lineBuffer);
+    }
+
+    if (lineBuffer[strlen(lineBuffer) - 1] != '\n') {
+        printf("\n");
+    }
 }
