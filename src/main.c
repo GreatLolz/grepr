@@ -4,6 +4,7 @@
 #include <getopt.h>
 #include <stdbool.h>
 #include <re.h>
+#include <errno.h>
 
 #define LINE_BUFFER 512
 
@@ -136,6 +137,7 @@ void processFile(char *filename) {
             fgets(lineBuffer + length, lineBufferSize - length, file);
             length = strlen(lineBuffer);
         }
+
 
         processLine(filename, lineBuffer, lineIndex, compiledPattern);
         lineIndex++;
