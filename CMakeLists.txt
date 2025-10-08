@@ -10,4 +10,5 @@ add_executable(grepr
     src/main.c
     src/getopt.c
     src/re.c
+    src/match.c
 )

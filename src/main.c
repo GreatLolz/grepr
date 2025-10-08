@@ -3,11 +3,11 @@
 #include <string.h>
 #include <getopt.h>
 #include <stdbool.h>
-#include <re.h>
 #include <errno.h>
 
+#include "match.h"
+
 #define LINE_BUFFER 512
-#define MATCH_BUFFER 10
 
 #define RED "\033[31m"
 #define WHITE "\033[0m"
@@ -23,16 +23,10 @@ typedef struct {
     bool inverted;
 } GreprConfig;
 
-typedef struct {
-    int matchIndex;
-    int matchLength;
-} Match;
-
 void handleArgs(int argc, char *argv[], GreprConfig *config);
 void printHelp(void);
 void processFile(char *filename, GreprConfig *config);
 void processLine(char *filename, char *lineBuffer, int lineIndex, GreprConfig *config);
-int findMatches(char *lineBuffer, re_t compiledPattern, Match **matches);
 void printResults(char *lineBuffer, int lineIndex, Match *matches, int matchCount, char *filename, GreprConfig *config);
 
 int main(int argc, char *argv[]) {
@@ -172,40 +166,6 @@ void processLine(char *filename, char *lineBuffer, int lineIndex, GreprConfig *c
     }
 
     free(matches);
-}
-
-int findMatches(char *lineBuffer, re_t compiledPattern, Match **matches) {
-    int count = 0;
-    int capacity = MATCH_BUFFER;
-
-    *matches = malloc(capacity * sizeof(Match));
-    if (*matches == NULL) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
-
-    int offset = 0;
-    int matchLength;
-    int matchIndex;
-
-    while ((matchIndex = re_matchp(compiledPattern, lineBuffer + offset, &matchLength)) != -1) {
-        if (count >= capacity) {
-            capacity *= 2;
-            Match *tmp = realloc(*matches, capacity * sizeof(Match));
-            if (tmp == NULL) {
-                perror("realloc");
-                exit(EXIT_FAILURE);
-            }
-            *matches = tmp;
-        }
-
-        (*matches)[count].matchIndex = offset + matchIndex;
-        (*matches)[count].matchLength = matchLength;
-        count++;
-        offset += matchIndex + matchLength;
-    }
-
-    return count;
 }
 
 void printResults(char *lineBuffer, int lineIndex, Match *matches, int matchCount, char *filename, GreprConfig *config) {
