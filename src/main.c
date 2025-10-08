@@ -25,7 +25,7 @@ bool inverted = false;
 // functions
 void handleArgs(int argc, char *argv[]);
 void printMatch(char *lineBuffer, re_t compiledPattern);
-void processLine(char *filename, char *line, int lineInde, re_t compiledPattern);
+void processLine(char *filename, char *line, int lineIndex, re_t compiledPattern);
 void processFile(char *filename);
 
 int main(int argc, char *argv[]) {
