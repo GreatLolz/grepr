@@ -151,7 +151,7 @@ void processLine(char *filename, char *lineBuffer, int lineIndex, re_t compiledP
     int matchLength;
     bool hasMatch = re_matchp(compiledPattern, lineBuffer, &matchLength) != -1;
 
-    if (hasMatch && !inverted || !hasMatch && inverted) {
+    if ((hasMatch && !inverted) || (!hasMatch && inverted)) {
         // print file headers
         if (fileCount > 1 && !hideFileHeaders) 
             printf("%s%s%s:", BLUE, filename, WHITE);
