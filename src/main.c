@@ -12,48 +12,46 @@
 #define WHITE "\033[0m"
 #define BLUE "\033[34m"
 
-// globals
-char *pattern;
-int fileCount = 0;
-char **filenames = NULL;
+typedef struct {
+    char *pattern;
+    re_t compiledPattern;
+    int fileCount;
+    char **filenames;
+    bool showLineNumbers;
+    bool hideFileHeaders;
+    bool inverted;
+} GreprConfig;
 
-// flags
-bool showLineIndex = false;
-bool hideFileHeaders = false;
-bool inverted = false;
-
-// functions
-void handleArgs(int argc, char *argv[]);
+void handleArgs(int argc, char *argv[], GreprConfig *config);
+void printHelp(void);
+void processFile(char *filename, GreprConfig *config);
+void processLine(char *filename, char *lineBuffer, int lineIndex, GreprConfig *config);
 void printMatch(char *lineBuffer, re_t compiledPattern);
-void processLine(char *filename, char *line, int lineIndex, re_t compiledPattern);
-void processFile(char *filename);
 
 int main(int argc, char *argv[]) {
-    handleArgs(argc, argv);
+    GreprConfig config = {
+        .pattern = NULL,
+        .compiledPattern = NULL,
+        .fileCount = 0,
+        .filenames = NULL,
+        .showLineNumbers = false,
+        .hideFileHeaders = false,
+        .inverted = false
+    };
 
-    for (int i = 0; i < fileCount; i++) {
-        processFile(filenames[i]);
+    handleArgs(argc, argv, &config);
+
+    for (int i = 0; i < config.fileCount; i++) {
+        processFile(config.filenames[i], &config);
     }
     
-    if (filenames != NULL) {
-        free(filenames);
+    if (config.filenames != NULL) {
+        free(config.filenames);
     }
     return 0;
 }
 
-void printHelp() {
-    printf(
-        "Usage: grepr [OPTIONS] <pattern> <filename>...\n"
-        "OPTIONS:\n"
-        "   -n          Show line numbers\n"
-        "   -h          Hide file headers when matching multiple files\n"
-        "   -v          Inverted mode (prints lines without matches)\n"
-        "   --help      Prints this help message\n"
-    );
-    exit(EXIT_SUCCESS);
-}
-
-void handleArgs(int argc, char *argv[]) {
+void handleArgs(int argc, char *argv[], GreprConfig *config) {
     int opt;
 
     static struct option longOptions[] = {
@@ -69,13 +67,13 @@ void handleArgs(int argc, char *argv[]) {
                     printHelp();
                 }
             case 'n':
-                showLineIndex = true;
+                config->showLineNumbers = true;
                 break;
             case 'h':
-                hideFileHeaders = true;
+                config->hideFileHeaders = true;
                 break;
             case 'v':
-                inverted = true;
+                config->inverted = true;
                 break;
             default:
                 fprintf(stderr, "Usage: grepr [OPTIONS] <pattern> <filename>...\n", argv[0]);
@@ -89,22 +87,35 @@ void handleArgs(int argc, char *argv[]) {
     }
 
     // first non-option arg
-    pattern = argv[optind];
+    config->pattern = argv[optind];
+    config->compiledPattern = re_compile(config->pattern);
 
-    fileCount = argc - optind - 1;
-    filenames = malloc(fileCount * sizeof(char *));
-    if (filenames == NULL) {
+    config->fileCount = argc - optind - 1;
+    config->filenames = malloc(config->fileCount * sizeof(char *));
+    if (config->filenames == NULL) {
         perror("malloc");
         exit(EXIT_FAILURE);
     }
 
     // remaining non-option args
-    for (int i = 0; i < fileCount; i++) {
-        filenames[i] = argv[optind + i + 1];
+    for (int i = 0; i < config->fileCount; i++) {
+        config->filenames[i] = argv[optind + i + 1];
     }
 }
 
-void processFile(char *filename) {
+void printHelp() {
+    printf(
+        "Usage: grepr [OPTIONS] <pattern> <filename>...\n"
+        "OPTIONS:\n"
+        "   -n          Show line numbers\n"
+        "   -h          Hide file headers when matching multiple files\n"
+        "   -v          Inverted mode (prints lines without matches)\n"
+        "   --help      Prints this help message\n"
+    );
+    exit(EXIT_SUCCESS);
+}
+
+void processFile(char *filename, GreprConfig *config) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         fprintf(stderr, "grepr: Error opening file %s: %s\n", filename, strerror(errno));
@@ -118,9 +129,6 @@ void processFile(char *filename) {
         perror("malloc");
         exit(EXIT_FAILURE);
     }
-
-    // pre-compile regex
-    re_t compiledPattern = re_compile(pattern);
     
     int lineIndex = 1;
     while (fgets(lineBuffer, LINE_BUFFER, file)) {
@@ -139,7 +147,7 @@ void processFile(char *filename) {
         }
 
 
-        processLine(filename, lineBuffer, lineIndex, compiledPattern);
+        processLine(filename, lineBuffer, lineIndex, config);
         lineIndex++;
     }
 
@@ -147,20 +155,20 @@ void processFile(char *filename) {
     fclose(file);
 }
 
-void processLine(char *filename, char *lineBuffer, int lineIndex, re_t compiledPattern) {
+void processLine(char *filename, char *lineBuffer, int lineIndex, GreprConfig *config) {
     int matchLength;
-    bool hasMatch = re_matchp(compiledPattern, lineBuffer, &matchLength) != -1;
+    bool hasMatch = re_matchp(config->compiledPattern, lineBuffer, &matchLength) != -1;
 
-    if ((hasMatch && !inverted) || (!hasMatch && inverted)) {
+    if ((hasMatch && !config->inverted) || (!hasMatch && config->inverted)) {
         // print file headers
-        if (fileCount > 1 && !hideFileHeaders) 
+        if (config->fileCount > 1 && !config->hideFileHeaders) 
             printf("%s%s%s:", BLUE, filename, WHITE);
         // show line numbers
-        if (showLineIndex) 
+        if (config->showLineNumbers) 
             printf("%d:", lineIndex);
 
-        if (hasMatch && !inverted) {
-            printMatch(lineBuffer, compiledPattern);
+        if (hasMatch && !config->inverted) {
+            printMatch(lineBuffer, config->compiledPattern);
         } else {
             printf("%s", lineBuffer);
         } 
