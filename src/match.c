@@ -26,6 +26,7 @@ int findMatches(char *lineBuffer, re_t compiledPattern, Match **matches) {
     int matchLength;
     int matchIndex;
 
+    // iterate through every match
     while ((matchIndex = re_matchp(compiledPattern, lineBuffer + offset, &matchLength)) != -1) {
         if (count >= capacity) {
             capacity *= 2;

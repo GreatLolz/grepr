@@ -169,10 +169,12 @@ void processLine(char *filename, char *lineBuffer, int lineIndex, GreprConfig *c
 }
 
 void printResults(char *lineBuffer, int lineIndex, Match *matches, int matchCount, char *filename, GreprConfig *config) {
+    // print file headers
     if (config->fileCount > 1 && !config->hideFileHeaders) {
         printf("%s%s%s:", BLUE, filename, WHITE);
     }
 
+    // print line numbers
     if (config->showLineNumbers) {
         printf("%d:", lineIndex);
     }
@@ -182,9 +184,11 @@ void printResults(char *lineBuffer, int lineIndex, Match *matches, int matchCoun
         int offset = 0;
         for (int i = 0; i < matchCount; i++) {
             fwrite(lineBuffer + offset, 1, matches[i].matchIndex - offset, stdout);
+            // highlight match
             printf("%s", RED);
             fwrite(lineBuffer + matches[i].matchIndex, 1, matches[i].matchLength, stdout);
             printf("%s", WHITE);
+
             offset = matches[i].matchIndex + matches[i].matchLength;
         }
         printf("%s", lineBuffer + offset);
@@ -192,6 +196,7 @@ void printResults(char *lineBuffer, int lineIndex, Match *matches, int matchCoun
         printf("%s", lineBuffer);
     }
 
+    // print newline if missing
     if (lineBuffer[strlen(lineBuffer) - 1] != '\n') {
         printf("\n");
     }
