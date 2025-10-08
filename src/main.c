@@ -159,7 +159,7 @@ void processLine(char *filename, char *lineBuffer, int lineIndex, GreprConfig *c
     int matchLength;
     bool hasMatch = re_matchp(config->compiledPattern, lineBuffer, &matchLength) != -1;
 
-    if ((hasMatch && !config->inverted) || (!hasMatch && config->inverted)) {
+    if (hasMatch != config->inverted) {
         // print file headers
         if (config->fileCount > 1 && !config->hideFileHeaders) 
             printf("%s%s%s:", BLUE, filename, WHITE);
