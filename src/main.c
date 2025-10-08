@@ -138,10 +138,10 @@ void processFile(char *filename, GreprConfig *config) {
     }
     
     int lineIndex = 1;
-    while (fgets(lineBuffer, LINE_BUFFER, file)) {
+    while (fgets(lineBuffer, lineBufferSize, file)) {
         // check if buffer is full
         size_t length = strlen(lineBuffer);
-        while (length == LINE_BUFFER - 1) {
+        while (length == lineBufferSize - 1) {
             lineBufferSize *= 2;
             char *tmp = realloc(lineBuffer, lineBufferSize);
             if (tmp == NULL) {
